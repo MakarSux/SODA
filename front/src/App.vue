@@ -1,35 +1,38 @@
 <template>
-  
-    <Header />
-    
-    <main>
-      <section class="hero">
-        <div class="container">
-          
-          <a href="#request-form" class="cta-button">Оставить заявку</a>
-        </div>
-      </section>
 
-      <section id="services" class="services">
-        <div class="container">
-          <h2>Наши услуги</h2>
-          <BannerService />
-        </div>
-      </section>
+  <Header />
 
-      <section id="request-form" class="request-section">
-        <div class="container">
-          <RequestForm />
-        </div>
-      </section>
-    </main>
-
-    <footer class="footer">
+  <main>
+    <section class="hero">
       <div class="container">
-        <p>&copy; 2025 Веб-студия SODA. Все права защищены.</p>
+        <h1>Цифровая мастреская</h1>
+        <p>
+          Компания SODA поможет создать продукт с удобным функционалом и стильным дизайном
+        </p>
+        <a href="#request-form" class="cta-button">Оставить заявку</a>
       </div>
-    </footer>
-  
+    </section>
+
+    <section id="services" class="services">
+      <div class="container">
+        <h2>Наши услуги</h2>
+        <BannerService />
+      </div>
+    </section>
+
+    <section id="request-form" class="request-section">
+      <div class="container">
+        <RequestForm />
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <p>&copy; 2025 Веб-студия SODA. Все права защищены.</p>
+    </div>
+  </footer>
+
 </template>
 
 <script setup>
@@ -53,7 +56,7 @@ body {
   background: #f8f9fa;
 }
 
-main{
+main {
   margin: 0 auto;
 }
 
@@ -76,25 +79,37 @@ main{
   text-align: center;
   margin-top: 60px;
 
-  h1 {
-    font-size: 3rem;
-    margin-bottom: 1rem;
-  }
+  position: relative;
 
-  p {
-    font-size: 1.2rem;
-    margin-bottom: 2rem;
+  .container {
+    position: absolute;
+    top: 50%;
+    left: 35%;
+    transform: translate(-50%, -50%);
+    text-align: left;
+    h1 {
+      font-size: 96px;
+      font-weight: 900;
+      margin-bottom: 1rem;
+    }
+
+    p {
+      font-size: 24px;
+      font-weight: 300;
+      margin-bottom: 2rem;
+    }
   }
 }
 
 .cta-button {
   display: inline-block;
-  padding: 1rem 2rem;
-  background: white;
-  color: #007bff;
+  padding: 20px 100px;
+  background: transparent;
+  color: #ffffff;
   text-decoration: none;
-  border-radius: 4px;
-  font-weight: bold;
+  border-radius: 30px;
+  border: 1px solid #ffffff;
+  font-weight: 300;
   transition: transform 0.3s ease;
 
   &:hover {
@@ -125,7 +140,7 @@ main{
   padding: 2rem;
   border-radius: 8px;
   text-align: center;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   transition: transform 0.3s ease;
 
   &:hover {

@@ -271,7 +271,7 @@ const handleSubmit = async () => {
       padding: 0 0.5rem;
 
       &:hover {
-        color: darken(#dc3545, 10%);
+        color: rgba(220, 53, 70, 0.9);
       }
     }
   }
@@ -289,7 +289,7 @@ const handleSubmit = async () => {
   transition: background-color 0.3s ease;
 
   &:hover {
-    background: darken(#007bff, 10%);
+    background: #007bff;
   }
 
   &:disabled {
