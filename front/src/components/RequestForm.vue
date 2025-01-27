@@ -78,8 +78,12 @@
 <script setup>
 import { ref, reactive } from 'vue'
 import { useToast } from 'vue-toastification'
+import axios from 'axios'
 
+const API_BASE_URL = 'http://localhost:3000'
 const toast = useToast()
+const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
+const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
 
 const formData = reactive({
   name: '',
@@ -92,6 +96,18 @@ const files = ref([])
 const isDragging = ref(false)
 const isSubmitting = ref(false)
 
+const validateFile = (file) => {
+  if (file.size > MAX_FILE_SIZE) {
+    toast.error(`Файл ${file.name} слишком большой. Максимальный размер: 5MB`)
+    return false
+  }
+  if (!ALLOWED_TYPES.includes(file.type)) {
+    toast.error(`Файл ${file.name} имеет неподдерживаемый формат`)
+    return false
+  }
+  return true
+}
+
 const handleDragOver = () => {
   isDragging.value = true
 }
@@ -103,16 +119,28 @@ const handleDragLeave = () => {
 const handleDrop = (e) => {
   isDragging.value = false
   const droppedFiles = [...e.dataTransfer.files]
-  files.value = [...files.value, ...droppedFiles]
+  const validFiles = droppedFiles.filter(validateFile)
+  files.value = [...files.value, ...validFiles]
 }
 
 const handleFileSelect = (e) => {
   const selectedFiles = [...e.target.files]
-  files.value = [...files.value, ...selectedFiles]
+  const validFiles = selectedFiles.filter(validateFile)
+  files.value = [...files.value, ...validFiles]
 }
 
 const removeFile = (index) => {
   files.value = files.value.filter((_, i) => i !== index)
+}
+
+const validateEmail = (email) => {
+  const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  return re.test(email)
+}
+
+const validatePhone = (phone) => {
+  const re = /^\+?[1-9]\d{10,14}$/
+  return re.test(phone)
 }
 
 const validateForm = () => {
@@ -120,10 +148,18 @@ const validateForm = () => {
     toast.error('Пожалуйста, введите ваше имя')
     return false
   }
-  if (!formData.contact.trim()) {
+  
+  const contact = formData.contact.trim()
+  if (!contact) {
     toast.error('Пожалуйста, введите контактную информацию')
     return false
   }
+  
+  if (!validateEmail(contact) && !validatePhone(contact)) {
+    toast.error('Пожалуйста, введите корректный email или телефон')
+    return false
+  }
+  
   if (!formData.serviceType) {
     toast.error('Пожалуйста, выберите тип услуги')
     return false
@@ -146,22 +182,36 @@ const handleSubmit = async () => {
       formDataToSend.append('files[]', file)
     })
 
-    // Здесь будет отправка на сервер
-    // const response = await axios.post('/api/submit-request', formDataToSend)
+    // Получаем токен из localStorage (предполагая, что он там есть после авторизации)
+    const token = localStorage.getItem('token')
     
-    // Имитация отправки
-    await new Promise(resolve => setTimeout(resolve, 1500))
-    
-    toast.success('Заявка успешно отправлена!')
-    
-    // Очистка формы
-    Object.keys(formData).forEach(key => {
-      formData[key] = ''
+    const response = await axios.post(`${API_BASE_URL}/requests/submit`, formDataToSend, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+        'Authorization': token ? `Bearer ${token}` : undefined
+      }
     })
-    files.value = []
+    
+    if (response.data.success) {
+      toast.success('Заявка успешно отправлена!')
+      
+      // Очистка формы
+      Object.keys(formData).forEach(key => {
+        formData[key] = ''
+      })
+      files.value = []
+    } else {
+      throw new Error(response.data.message || 'Ошибка при отправке заявки')
+    }
     
   } catch (error) {
-    toast.error('Произошла ошибка при отправке заявки')
+    if (error.response?.status === 401) {
+      toast.error('Необходимо авторизоваться для отправки заявки')
+      // Здесь можно добавить перенаправление на страницу входа
+      // router.push('/login')
+    } else {
+      toast.error(error.response?.data?.message || 'Произошла ошибка при отправке заявки')
+    }
     console.error(error)
   } finally {
     isSubmitting.value = false

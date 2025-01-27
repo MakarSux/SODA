@@ -1,35 +1,73 @@
 package main
 
 import (
-    "github.com/gofiber/fiber/v2"
-    "github.com/sirupsen/logrus"
-    "back/handlers"
-    "back/storage"
-    "back/middleware"
-    _ "github.com/mattn/go-sqlite3" // Импортируем драйвер SQLite
+	"back/handlers"
+	"back/middleware"
+	"back/storage"
+	"fmt"
+	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
+	"log"
+	"os"
 )
 
 func main() {
-    db, err := InitSQLite("users.db")
-    if err != nil {
-        logrus.Fatal(err)
-    }
-    defer db.Close()
+	// Инициализация подключения к PostgreSQL
+	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable",
+		getEnv("DB_HOST", "localhost"),
+		getEnv("DB_USER", "postgres"),
+		getEnv("DB_PASSWORD", "1234"),
+		getEnv("DB_NAME", "requests_db"),
+		getEnv("DB_PORT", "5432"),
+	)
 
-    app := fiber.New()
+	store, err := storage.NewPostgresStorage(dsn)
+	if err != nil {
+		log.Fatalf("Failed to connect to database: %v", err)
+	}
 
+	// Инициализация Fiber
+	app := fiber.New()
 
-    authHandler := handlers.NewAuthHandler(db)
-    userHandler := handlers.NewUserHandler(db)
+	// CORS middleware
+	app.Use(cors.New(cors.Config{
+		AllowOrigins: "*",
+		AllowHeaders: "Origin, Content-Type, Accept, Authorization",
+		AllowMethods: "GET, POST, PUT, DELETE",
+	}))
 
-    // Public routes
-    app.Post("/register", authHandler.Register)
-    app.Post("/login", authHandler.Login)
+	// Инициализация обработчиков
+	authHandler := handlers.NewAuthHandler(store)
+	requestHandler := handlers.NewRequestHandler(store)
+	userHandler := handlers.NewUserHandler(store)
 
-    // Protected routes
-    authorizedGroup := app.Group("")
-    authorizedGroup.Use(middleware.JWTMiddleware())
-    authorizedGroup.Get("/profile", userHandler.Profile)
+	// Маршруты аутентификации
+	auth := app.Group("/auth")
+	auth.Post("/register", authHandler.Register)
+	auth.Post("/login", authHandler.Login)
 
-    logrus.Fatal(app.Listen(":80"))
+	// Маршруты для заявок
+	requests := app.Group("/requests", middleware.Protected())
+	requests.Post("/submit", requestHandler.SubmitRequest)
+	requests.Get("/", requestHandler.GetRequests)
+	requests.Get("/:id", requestHandler.GetRequest)
+	requests.Put("/:id/status", requestHandler.UpdateRequestStatus)
+
+	// Маршруты для пользователей
+	users := app.Group("/users", middleware.Protected())
+	users.Get("/profile", userHandler.Profile)
+	users.Put("/profile", userHandler.UpdateProfile)
+	users.Get("/requests", userHandler.GetUserRequests)
+
+	// Запуск сервера
+	port := getEnv("PORT", "3000")
+	log.Printf("Server is running on port %s", port)
+	log.Fatal(app.Listen(":" + port))
+}
+
+func getEnv(key, defaultValue string) string {
+	if value, exists := os.LookupEnv(key); exists {
+		return value
+	}
+	return defaultValue
 }
