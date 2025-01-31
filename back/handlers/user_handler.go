@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"back/models"
 	"back/storage"
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v4"
@@ -96,10 +97,26 @@ func (h *UserHandler) GetUserRequests(c *fiber.Ctx) error {
 	claims := token.Claims.(jwt.MapClaims)
 	userID := uint(claims["id"].(float64))
 
-	requests, err := h.storage.GetRequestsByUserID(userID)
+	// Получаем информацию о пользователе для проверки роли
+	userProfile, err := h.storage.GetUserByID(userID)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Failed to get user requests",
+			"error": "Ошибка при получении данных пользователя",
+		})
+	}
+
+	var requests []models.Request
+	if userProfile.Role == "admin" {
+		// Если пользователь админ, получаем все заявки
+		requests, err = h.storage.GetAllRequests()
+	} else {
+		// Если обычный пользователь, получаем только его заявки
+		requests, err = h.storage.GetRequestsByUserID(userID)
+	}
+
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Ошибка при получении заявок",
 		})
 	}
 

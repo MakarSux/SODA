@@ -40,6 +40,7 @@ func main() {
 	authHandler := handlers.NewAuthHandler(store)
 	requestHandler := handlers.NewRequestHandler(store)
 	userHandler := handlers.NewUserHandler(store)
+	chatHandler := handlers.NewChatHandler(store)
 
 	// Маршруты аутентификации
 	auth := app.Group("/auth")
@@ -52,6 +53,11 @@ func main() {
 	requests.Get("/", requestHandler.GetRequests)
 	requests.Get("/:id", requestHandler.GetRequest)
 	requests.Put("/:id/status", requestHandler.UpdateRequestStatus)
+
+	// Маршруты для чата
+	chat := app.Group("/chat", middleware.Protected())
+	chat.Post("/messages", chatHandler.SendMessage)
+	chat.Get("/messages/:requestId", chatHandler.GetMessages)
 
 	// Маршруты для пользователей
 	users := app.Group("/users", middleware.Protected())

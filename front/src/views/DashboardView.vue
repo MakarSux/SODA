@@ -2,10 +2,10 @@
   <div class="dashboard">
     <header class="dashboard-header">
       <h1>Панель управления</h1>
-      <div class="user-info">
+      <!-- <div class="user-info">
         <span>{{ user?.name }}</span>
         <button @click="logout" class="logout-btn">Выйти</button>
-      </div>
+      </div> -->
     </header>
 
     <main class="dashboard-content">
@@ -35,11 +35,16 @@
           <div v-else-if="requests.length === 0" class="no-requests">
             У вас пока нет заявок
           </div>
-          <div v-else v-for="request in requests" :key="request.id" class="request-card">
-            <h3>{{ request.title }}</h3>
+          <div v-else v-for="request in requests" :key="request.id" 
+               class="request-card" 
+               @click="viewRequestDetails(request.id)">
+            <div class="request-header">
+              <h3>{{ request.title }}</h3>
+              <span v-if="isAdmin" class="author">Автор: {{ request.user.name }}</span>
+            </div>
             <p>{{ request.description }}</p>
             <div class="request-footer">
-              <span :class="['status', request.status]">{{ request.status }}</span>
+              <span :class="['status', request.status.toLowerCase()]">{{ getStatusText(request.status) }}</span>
               <span class="date">{{ formatDate(request.createdAt) }}</span>
             </div>
           </div>
@@ -117,22 +122,29 @@ const newRequest = ref({
   attachment: null
 })
 
+const isAdmin = computed(() => user.value?.role === 'admin')
+
 const requestsCount = computed(() => requests.value.length)
 const pendingCount = computed(() => 
-  requests.value.filter(r => r.status === 'pending').length
+  requests.value.filter(r => r.status === 'NEW' || r.status === 'IN_PROGRESS').length
 )
 const completedCount = computed(() => 
-  requests.value.filter(r => r.status === 'completed').length
+  requests.value.filter(r => r.status === 'RESOLVED' || r.status === 'CLOSED').length
 )
 
 const fetchRequests = async () => {
   try {
     isLoading.value = true
-    const response = await axios.get('http://localhost:3000/users/requests', {
-      headers: authStore.getAuthHeaders()
+    const response = await axios.get('/users/requests', {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem('token')}`
+      }
     })
+    console.log('Полученные заявки:', response.data)
     requests.value = response.data
+    
   } catch (error) {
+    console.error('Ошибка при загрузке заявок:', error)
     toast.error('Ошибка при загрузке заявок')
   } finally {
     isLoading.value = false
@@ -154,9 +166,9 @@ const submitRequest = async () => {
       formData.append('attachment', newRequest.value.attachment)
     }
 
-    await axios.post('http://localhost:3000/requests/submit', formData, {
+    await axios.post('/requests/submit', formData, {
       headers: {
-        ...authStore.getAuthHeaders(),
+        Authorization: `Bearer ${localStorage.getItem('token')}`,
         'Content-Type': 'multipart/form-data'
       }
     })
@@ -166,6 +178,7 @@ const submitRequest = async () => {
     newRequest.value = { title: '', description: '', attachment: null }
     await fetchRequests()
   } catch (error) {
+    console.error('Ошибка при создании заявки:', error)
     toast.error('Ошибка при создании заявки')
   } finally {
     isSubmitting.value = false
@@ -183,6 +196,26 @@ const formatDate = (date) => {
 const logout = () => {
   authStore.logout()
   router.push('/login')
+}
+
+const viewRequestDetails = (requestId) => {
+  console.log('Переход к заявке с ID:', requestId)
+  if (requestId) {
+    router.push(`/requests/${requestId}`)
+  } else {
+    console.error('ID заявки не определен')
+    toast.error('Ошибка: ID заявки не определен')
+  }
+}
+
+const getStatusText = (status) => {
+  const statusMap = {
+    'NEW': 'Новая',
+    'IN_PROGRESS': 'В работе',
+    'RESOLVED': 'Решена',
+    'CLOSED': 'Закрыта'
+  }
+  return statusMap[status] || status
 }
 
 onMounted(async () => {
@@ -296,20 +329,43 @@ onMounted(async () => {
 }
 
 .request-card {
-  background: #f8f9fa;
+  background: #fff;
+  border-radius: 8px;
   padding: 1.5rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s, box-shadow 0.2s;
+  cursor: pointer;
+}
+
+.request-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.request-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.request-header h3 {
+  margin: 0;
+  color: #2c3e50;
+}
+
+.author {
+  font-size: 0.875rem;
+  color: #666;
+  background-color: #f5f5f5;
+  padding: 0.25rem 0.5rem;
   border-radius: 4px;
-  border-left: 4px solid #007bff;
+}
 
-  h3 {
-    margin: 0 0 0.5rem;
-    color: #333;
-  }
-
-  p {
-    margin: 0 0 1rem;
-    color: #666;
-  }
+.request-card p {
+  margin: 0 0 1rem 0;
+  color: #666;
 }
 
 .request-footer {
@@ -320,23 +376,29 @@ onMounted(async () => {
 
 .status {
   padding: 0.25rem 0.75rem;
-  border-radius: 20px;
+  border-radius: 4px;
   font-size: 0.875rem;
+  font-weight: 500;
+}
 
-  &.pending {
-    background: #ffc107;
-    color: #000;
-  }
+.status.new {
+  background-color: #e3f2fd;
+  color: #1976d2;
+}
 
-  &.completed {
-    background: #28a745;
-    color: white;
-  }
+.status.in_progress {
+  background-color: #fff3e0;
+  color: #f57c00;
+}
 
-  &.rejected {
-    background: #dc3545;
-    color: white;
-  }
+.status.resolved {
+  background-color: #e8f5e9;
+  color: #388e3c;
+}
+
+.status.closed {
+  background-color: #efebe9;
+  color: #5d4037;
 }
 
 .date {

@@ -7,6 +7,7 @@ import (
 
 type User struct {
 	gorm.Model
+	ID       uint   `json:"id" gorm:"primarykey"`
 	Email    string `json:"email" gorm:"unique"`
 	Password string `json:"password,omitempty"`
 	Name     string `json:"name"`
@@ -15,6 +16,7 @@ type User struct {
 
 type Request struct {
 	gorm.Model
+	ID          uint          `json:"id" gorm:"primarykey"`
 	UserID      uint          `json:"userId"`
 	User        User          `json:"user" gorm:"foreignKey:UserID"`
 	Title       string        `json:"title"`
@@ -27,8 +29,20 @@ type Request struct {
 
 type Attachment struct {
 	gorm.Model
+	ID        uint   `json:"id" gorm:"primarykey"`
 	RequestID uint   `json:"requestId"`
 	Filename  string `json:"filename"`
 	Type      string `json:"type"`
 	Size      int64  `json:"size"`
+}
+
+type ChatMessage struct {
+	gorm.Model
+	ID         uint      `json:"id" gorm:"primarykey"`
+	RequestID  uint      `json:"requestId"`
+	Request    Request   `json:"request" gorm:"foreignKey:RequestID"`
+	UserID     uint      `json:"userId"`
+	User       User      `json:"user" gorm:"foreignKey:UserID"`
+	Message    string    `json:"message"`
+	CreatedAt  time.Time `json:"createdAt"`
 }

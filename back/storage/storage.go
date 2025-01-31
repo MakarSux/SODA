@@ -23,6 +23,10 @@ type Storage interface {
 	// Attachment methods
 	CreateAttachment(attachment *models.Attachment) error
 	GetAttachmentsByRequestID(requestID uint) ([]models.Attachment, error)
+
+	// Chat methods
+	CreateChatMessage(message *models.ChatMessage) error
+	GetChatMessagesByRequestID(requestID uint) ([]models.ChatMessage, error)
 }
 
 type PostgresStorage struct {
@@ -36,7 +40,7 @@ func NewPostgresStorage(dsn string) (*PostgresStorage, error) {
 	}
 
 	// Автоматическая миграция схемы
-	err = db.AutoMigrate(&models.User{}, &models.Request{}, &models.Attachment{})
+	err = db.AutoMigrate(&models.User{}, &models.Request{}, &models.Attachment{}, &models.ChatMessage{})
 	if err != nil {
 		return nil, err
 	}
@@ -119,4 +123,21 @@ func (s *PostgresStorage) GetAttachmentsByRequestID(requestID uint) ([]models.At
 		return nil, result.Error
 	}
 	return attachments, nil
+}
+
+// Chat methods implementation
+func (s *PostgresStorage) CreateChatMessage(message *models.ChatMessage) error {
+	return s.db.Create(message).Error
+}
+
+func (s *PostgresStorage) GetChatMessagesByRequestID(requestID uint) ([]models.ChatMessage, error) {
+	var messages []models.ChatMessage
+	result := s.db.Where("request_id = ?", requestID).
+		Preload("User").
+		Order("created_at asc").
+		Find(&messages)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return messages, nil
 }

@@ -2,12 +2,18 @@
   <nav class="navbar">
     <div class="navbar-brand">
       <router-link to="/" class="logo">
-        Система заявок
+        SODA Design
       </router-link>
     </div>
 
     <div class="navbar-menu">
       <template v-if="isAuthenticated">
+        <router-link to="/general" class="nav-link">
+          Главная
+        </router-link>
+        <router-link to="/about_us" class="nav-link">
+          О нас
+        </router-link>
         <router-link to="/dashboard" class="nav-link">
           Панель управления
         </router-link>
@@ -19,11 +25,21 @@
         </div>
       </template>
       <template v-else>
+        <router-link to="/general" class="nav-link">
+          Главная
+        </router-link>
+        <router-link to="/about_us" class="nav-link">
+          О нас
+        </router-link>
         <router-link to="/login" class="nav-link">
           Вход
         </router-link>
         <router-link to="/register" class="nav-link">
           Регистрация
+        </router-link>
+        
+        <router-link to="/dashboard" class="nav-link">
+          Панель управления
         </router-link>
       </template>
     </div>
@@ -39,6 +55,7 @@ const router = useRouter()
 const authStore = useAuthStore()
 
 const isAuthenticated = computed(() => authStore.isAuthenticated)
+const isAdmin = computed(() => user.value?.role === 'admin')
 const user = computed(() => authStore.userProfile)
 
 const logout = () => {

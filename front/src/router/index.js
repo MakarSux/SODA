@@ -6,7 +6,7 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      redirect: '/dashboard'
+      redirect: '/general'
     },
     {
       path: '/login',
@@ -21,10 +21,27 @@ const router = createRouter({
       meta: { requiresGuest: true }
     },
     {
+      path: '/general',
+      name: 'general',
+      component: () => import('../views/GeneralView.vue'),
+    },
+    {
+      path: '/about_us',
+      name: 'about_us',
+      component: () => import('@/views/AboutUsView.vue'),
+    },
+    {
       path: '/dashboard',
       name: 'dashboard',
       component: () => import('@/views/DashboardView.vue'),
       meta: { requiresAuth: true }
+    },
+    {
+      path: '/requests/:id',
+      name: 'request-details',
+      component: () => import('@/views/RequestDetails.vue'),
+      meta: { requiresAuth: true },
+      props: true
     },
     {
       path: '/:pathMatch(.*)*',
